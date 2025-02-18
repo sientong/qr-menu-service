@@ -1,0 +1,35 @@
+groups:
+  - name: authentication
+    rules:
+      - alert: HighLoginFailureRate
+        expr: |
+          sum(rate(auth_login_failure_total[5m])) 
+          / 
+          sum(rate(auth_login_attempts_total[5m])) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High login failure rate
+          description: Login failure rate is above 30% for 5 minutes
+
+      - alert: AuthServiceDown
+        expr: health_status{application="qr-menu-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Authentication service is down
+          description: The authentication service health check is failing
+
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_server_requests_seconds_bucket{uri="/api/v1/auth/login"}[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High response time for login requests
+          description: 95th percentile of login response time is above 500ms 

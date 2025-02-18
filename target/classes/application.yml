@@ -1,0 +1,83 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/qr_menu
+    username: postgres
+    password: 099052
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      
+  redis:
+    host: localhost
+    port: 6379
+    password: 
+    database: 0
+    
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+application:
+  security:
+    token:
+      expiration: 86400000  # 24 hours in milliseconds
+  qrcode:
+    expiration: 2592000000  # 30 days in milliseconds
+  rate-limit:
+    requests-per-second: 10
+  frontend-url: https://your-frontend-domain.com
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-app-specific-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    from: noreply@yourapp.com
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+  metrics:
+    tags:
+      application: qr-menu-service
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 50ms,100ms,200ms,500ms
+  tracing:
+    sampling:
+      probability: 1.0
+    baggage:
+      remote-fields: "x-request-id"
+      correlation:
+        fields: "x-request-id"
+    propagation:
+      type: B3
+    zipkin:
+      tracing:
+        endpoint: "http://localhost:9411/api/v2/spans"
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"    
+  level:
+    com.qrmenu: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO

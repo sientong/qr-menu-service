@@ -1,0 +1,3 @@
+TRUNCATE TABLE restaurant_social_media CASCADE;
+TRUNCATE TABLE restaurants CASCADE;
+TRUNCATE TABLE users CASCADE; 
