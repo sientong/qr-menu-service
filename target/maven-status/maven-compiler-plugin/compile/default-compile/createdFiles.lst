@@ -140,6 +140,7 @@ com/qrmenu/model/QRCode$QRCodeBuilder.class
 com/qrmenu/security/RedisSessionManager.class
 com/qrmenu/model/User.class
 com/qrmenu/dto/qr/QRCodeResponse$QRCodeResponseBuilder.class
+com/qrmenu/config/EmailConfig.class
 com/qrmenu/dto/menu/QRCodeRequest.class
 com/qrmenu/dto/menu/QRCodeResponse.class
 com/qrmenu/service/RateLimitService.class

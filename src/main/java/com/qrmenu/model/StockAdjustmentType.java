@@ -6,5 +6,6 @@ public enum StockAdjustmentType {
     PURCHASE,
     INVENTORY_COUNT,
     WASTE,
-    RETURN
-} 
+    RETURN,
+    BATCH_UPDATE
+}

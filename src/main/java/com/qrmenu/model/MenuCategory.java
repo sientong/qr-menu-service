@@ -5,8 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -23,9 +24,13 @@ public class MenuCategory {
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    @OneToMany
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "menu_id", nullable = false)
-    private List<Menu> menus;
+    private Menu menu;
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<MenuItem> items = new ArrayList<>();
 
     @Column(nullable = false)
     private String name;
@@ -53,4 +58,4 @@ public class MenuCategory {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

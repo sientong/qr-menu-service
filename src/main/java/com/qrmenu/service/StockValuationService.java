@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -46,30 +49,48 @@ public class StockValuationService {
     }
 
     @PreAuthorize("hasRole('RESTAURANT_ADMIN')")
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public List<StockValuationResponse> updateValuations(BatchValuationRequest request) {
         validateValuationRequest(request);
 
-        List<MenuItem> items = menuItemRepository.findAllById(
-                request.getUpdates().stream()
-                        .map(BatchValuationRequest.ValuationUpdate::getMenuItemId)
-                        .collect(Collectors.toList())
-        );
+        List<Long> itemIds = request.getUpdates().stream()
+                .map(BatchValuationRequest.ValuationUpdate::getMenuItemId)
+                .collect(Collectors.toList());
 
-        if (items.size() != request.getUpdates().size()) {
-            throw new ResourceNotFoundException("Some menu items were not found");
+        List<MenuItem> items = menuItemRepository.findAllById(itemIds);
+        
+        // Check for missing items with detailed error message
+        if (items.size() != itemIds.size()) {
+            Set<Long> foundIds = items.stream()
+                    .map(MenuItem::getId)
+                    .collect(Collectors.toSet());
+            List<Long> missingIds = itemIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .collect(Collectors.toList());
+            throw new ResourceNotFoundException("Menu items not found: " + missingIds);
         }
 
         validateItemsOwnership(items);
 
+        // Validate unit costs and update items
+        Map<Long, BigDecimal> costUpdates = request.getUpdates().stream()
+                .collect(Collectors.toMap(
+                    BatchValuationRequest.ValuationUpdate::getMenuItemId,
+                    BatchValuationRequest.ValuationUpdate::getUnitCost
+                ));
+
         items.forEach(item -> {
-            request.getUpdates().stream()
-                    .filter(update -> update.getMenuItemId().equals(item.getId()))
-                    .findFirst()
-                    .ifPresent(update -> updateItemValuation(item, update.getUnitCost()));
+            BigDecimal newUnitCost = costUpdates.get(item.getId());
+            
+            if (newUnitCost == null || newUnitCost.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new StockValidationException("Invalid unit cost for item " + item.getName() + ": must be greater than zero");
+            }
+            
+            updateItemValuation(item, newUnitCost);
         });
 
-        return menuItemRepository.saveAll(items).stream()
+        List<MenuItem> savedItems = menuItemRepository.saveAll(items);
+        return savedItems.stream()
                 .map(this::mapToValuationResponse)
                 .collect(Collectors.toList());
     }
@@ -146,7 +167,7 @@ public class StockValuationService {
         }
 
         boolean hasUnauthorizedAccess = items.stream()
-                .anyMatch(item -> !item.getMenuCategory().getRestaurant().getId().equals(restaurantId));
+                .anyMatch(item -> !item.getCategory().getRestaurant().getId().equals(restaurantId));
 
         if (hasUnauthorizedAccess) {
             throw new AccessDeniedException("Unauthorized access to menu items");

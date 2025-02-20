@@ -51,6 +51,7 @@
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/exception/DuplicateResourceException.java
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/config/ApiVersion.java
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/config/OpenApiConfig.java
+/Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/config/EmailConfig.java
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/service/QRCodeService.java
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/config/ApiVersionConfig.java
 /Users/syaif/Projects/SpringBoot/qr-menu-service/src/main/java/com/qrmenu/service/StockAlertService.java

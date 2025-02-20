@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.List;
+
 @Data
 @Entity
 @Builder
@@ -18,10 +18,9 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Restaurant category
-    @OneToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)
-    private List<Restaurant> restaurants;
+    private Restaurant restaurant;
 
     @Column(nullable = false)
     private String name;
@@ -49,4 +48,4 @@ public class Category {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}

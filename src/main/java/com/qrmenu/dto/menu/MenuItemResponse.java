@@ -39,4 +39,4 @@ public class MenuItemResponse {
 
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
-} 
+}

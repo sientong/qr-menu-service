@@ -5,7 +5,7 @@ import com.qrmenu.dto.stock.StockValuationResponse;
 import com.qrmenu.model.MenuItem;
 import com.qrmenu.model.Restaurant;
 import com.qrmenu.model.User;
-import com.qrmenu.model.Category;
+import com.qrmenu.model.MenuCategory;
 import com.qrmenu.repository.MenuItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +52,7 @@ class StockValuationServiceTest {
                 .name("Test Restaurant")
                 .build();
 
-        Category category = Category.builder()
+        MenuCategory category = MenuCategory.builder()
                 .id(1L)
                 .restaurant(restaurant)
                 .build();
@@ -69,7 +69,7 @@ class StockValuationServiceTest {
                 .trackStock(true)
                 .stockQuantity(10)
                 .unitCost(BigDecimal.valueOf(5.99))
-                .category(category)
+                .menuCategory(category)
                 .build();
 
         menuItem2 = MenuItem.builder()
@@ -78,7 +78,7 @@ class StockValuationServiceTest {
                 .trackStock(true)
                 .stockQuantity(5)
                 .unitCost(BigDecimal.valueOf(3.99))
-                .category(category)
+                .menuCategory(category)
                 .build();
 
         when(userService.getCurrentUser()).thenReturn(user);
@@ -162,14 +162,14 @@ class StockValuationServiceTest {
     @Test
     void updateValuations_ShouldThrowException_WhenUnauthorizedAccess() {
         Restaurant otherRestaurant = Restaurant.builder().id(2L).build();
-        Category otherCategory = Category.builder()
+        MenuCategory otherCategory = MenuCategory.builder()
                 .id(2L)
                 .restaurant(otherRestaurant)
                 .build();
 
         MenuItem unauthorizedItem = MenuItem.builder()
                 .id(3L)
-                .category(otherCategory)
+                .menuCategory(otherCategory)
                 .build();
 
         BatchValuationRequest.ValuationUpdate update = new BatchValuationRequest.ValuationUpdate();
@@ -200,7 +200,7 @@ class StockValuationServiceTest {
         BatchValuationRequest request = new BatchValuationRequest();
         request.setUpdates(Arrays.asList(update));
 
-        assertThrows(StockValidationException.class, () ->
+        assertThrows(StockValidationException.class, () -> 
             stockValuationService.updateValuations(request));
     }
 
@@ -252,4 +252,4 @@ class StockValuationServiceTest {
         assertThrows(StockValidationException.class, () ->
             stockValuationService.updateValuations(request));
     }
-} 
+}

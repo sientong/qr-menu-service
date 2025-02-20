@@ -15,6 +15,20 @@ spring:
     port: 6379
     password: 
     database: 0
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    from: your-email@gmail.com
+    username: your-email@gmail.com
+    password: your-app-specific-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    default-encoding: UTF-8
     
 server:
   port: 8080
@@ -31,16 +45,6 @@ application:
     requests-per-second: 10
   frontend-url: https://your-frontend-domain.com
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: your-email@gmail.com
-    password: your-app-specific-password
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
     from: noreply@yourapp.com
 
 management:

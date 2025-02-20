@@ -17,6 +17,7 @@ import com.qrmenu.repository.MenuItemRepository;
 import com.qrmenu.repository.StockHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import com.qrmenu.model.User; 
 
@@ -25,6 +26,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,7 +40,7 @@ public class StockManagementService {
     private final StockExportService stockExportService;
     private final StockAlertService stockAlertService;
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public StockResponse adjustStock(Long menuItemId, StockAdjustmentRequest request) {
         MenuItem menuItem = menuItemRepository.findById(menuItemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found"));
@@ -77,15 +79,34 @@ public class StockManagementService {
         return mapToStockResponse(savedItem);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public List<StockResponse> batchUpdateStock(BatchStockUpdateRequest request) {
+        if (request.getUpdates() == null || request.getUpdates().isEmpty()) {
+            throw new IllegalArgumentException("Stock updates cannot be empty");
+        }
+
         List<Long> itemIds = request.getUpdates().stream()
                 .map(BatchStockUpdateRequest.StockUpdate::getMenuItemId)
                 .collect(Collectors.toList());
 
         List<MenuItem> items = menuItemRepository.findAllById(itemIds);
         if (items.size() != itemIds.size()) {
-            throw new ResourceNotFoundException("Some menu items were not found");
+            Set<Long> foundIds = items.stream()
+                    .map(MenuItem::getId)
+                    .collect(Collectors.toSet());
+            List<Long> missingIds = itemIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .collect(Collectors.toList());
+            throw new ResourceNotFoundException("Menu items not found: " + missingIds);
+        }
+
+        // Validate all items have stock tracking enabled
+        List<MenuItem> nonTrackingItems = items.stream()
+                .filter(item -> !item.isTrackStock())
+                .collect(Collectors.toList());
+        if (!nonTrackingItems.isEmpty()) {
+            throw new StockManagementException("Stock tracking not enabled for items: " + 
+                nonTrackingItems.stream().map(MenuItem::getName).collect(Collectors.joining(", ")));
         }
 
         Map<Long, Integer> quantityUpdates = request.getUpdates().stream()
@@ -94,11 +115,37 @@ public class StockManagementService {
                     BatchStockUpdateRequest.StockUpdate::getQuantity
                 ));
 
+        // Track history for each item
+        User currentUser = userService.getCurrentUser();
         items.forEach(item -> {
-            item.setStockQuantity(quantityUpdates.get(item.getId()));
+            int previousQuantity = item.getStockQuantity();
+            int newQuantity = quantityUpdates.get(item.getId());
+            
+            if (newQuantity < 0) {
+                throw new StockManagementException("Invalid negative stock quantity for item: " + item.getName());
+            }
+            
+            item.setStockQuantity(newQuantity);
+            
+            StockHistory history = StockHistory.builder()
+                    .menuItem(item)
+                    .previousQuantity(previousQuantity)
+                    .newQuantity(newQuantity)
+                    .adjustmentQuantity(newQuantity - previousQuantity)
+                    .adjustmentType(StockAdjustmentType.BATCH_UPDATE)
+                    .adjustedBy(currentUser.getEmail())
+                    .build();
+            stockHistoryRepository.save(history);
+            
+            // Check for alerts
+            stockAlertService.createLowStockAlert(item);
+            if (newQuantity <= 0) {
+                stockAlertService.createOutOfStockAlert(item);
+            }
         });
 
-        return menuItemRepository.saveAll(items).stream()
+        List<MenuItem> savedItems = menuItemRepository.saveAll(items);
+        return savedItems.stream()
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
     }

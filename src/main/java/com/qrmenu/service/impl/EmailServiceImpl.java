@@ -21,11 +21,11 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender emailSender;
     private final TemplateEngine templateEngine;
 
-    @Value("${application.frontend-url}")
-    private String frontendUrl;
-
     @Value("${spring.mail.from}")
     private String fromEmail;
+
+    @Value("${application.frontend-url}")
+    private String frontendUrl;
 
     @Override
     @Async

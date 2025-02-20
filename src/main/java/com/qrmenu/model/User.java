@@ -14,6 +14,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 
 @Entity
 @Table(name = "users")
@@ -35,9 +37,29 @@ public class User {
 
     private String email;
     private String passwordHash;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private UserRole role;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
     @Builder.Default
     private boolean active = true;  // Default to true for new users
-} 
+
+    /**
+     * Check if the user has access to the specified restaurant
+     * @param restaurantId ID of the restaurant to check access for
+     * @return true if user has access, false otherwise
+     */
+    public boolean hasAccessToRestaurant(Long restaurantId) {
+        // SUPER_ADMIN has access to all restaurants
+        if (role == UserRole.SUPER_ADMIN) {
+            return true;
+        }
+        
+        // For other roles, check if they belong to the restaurant
+        return restaurant != null && restaurant.getId().equals(restaurantId);
+    }
+}

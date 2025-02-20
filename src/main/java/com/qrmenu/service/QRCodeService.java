@@ -34,7 +34,7 @@ public class QRCodeService {
     @Value("${application.qrcode.expiration-days:30}")
     private int qrCodeExpirationDays;
     
-    @Value("${application.frontend.url}")
+    @Value("${application.frontend-url}")
     private String frontendUrl;
 
     /**

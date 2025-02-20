@@ -22,7 +22,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User createUser(User user) {
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
-        return userRepository.saveUser(user);
+        return userRepository.save(user);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        userRepository.delete(id);
+        userRepository.deleteById(id);
     }
 
     @Override

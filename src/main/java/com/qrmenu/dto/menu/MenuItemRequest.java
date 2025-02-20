@@ -12,9 +12,9 @@ public class MenuItemRequest {
     @NotNull(message = "Menu ID is required")
     private Long menuId;
 
-    @Schema(description = "Menu Category ID", example = "1")
-    @NotNull(message = "Menu Category ID is required")
-    private Long menuCategoryId;
+    @Schema(description = "Category ID", example = "1")
+    @NotNull(message = "Category ID is required")
+    private Long categoryId;
 
     @Schema(description = "Item name", example = "Margherita Pizza")
     @NotBlank(message = "Name is required")
@@ -40,4 +40,4 @@ public class MenuItemRequest {
 
     @Schema(description = "Item visibility status", example = "true")
     private boolean active = true;
-} 
+}
