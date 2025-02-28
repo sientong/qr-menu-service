@@ -1,16 +1,17 @@
 package com.qrmenu.repository;
 
-import com.qrmenu.model.Restaurant;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZonedDateTime;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.qrmenu.model.Restaurant;
 
 @SpringBootTest
 @Transactional
@@ -81,11 +82,11 @@ class RestaurantRepositoryTest {
         // When
         savedRestaurant.setName("Updated Name");
         savedRestaurant.setDescription("Updated Description");
-        savedRestaurant.setUpdatedAt(ZonedDateTime.now());
+        savedRestaurant.setUpdatedAt(LocalDateTime.now());
         Restaurant updatedRestaurant = restaurantRepository.save(savedRestaurant);
 
         // Then
         assertThat(updatedRestaurant.getName()).isEqualTo("Updated Name");
         assertThat(updatedRestaurant.getDescription()).isEqualTo("Updated Description");
     }
-} 
+}

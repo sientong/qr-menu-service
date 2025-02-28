@@ -1,6 +1,11 @@
 package com.qrmenu.exception;
 
-import com.qrmenu.dto.error.ApiError;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,11 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.qrmenu.dto.error.ApiError;
 
 class GlobalExceptionHandlerTest {
 
@@ -58,7 +59,7 @@ class GlobalExceptionHandlerTest {
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
         when(ex.getBindingResult()).thenReturn(bindingResult);
-        
+
         List<FieldError> fieldErrors = List.of(
             new FieldError("restaurant", "name", "Name is required"),
             new FieldError("restaurant", "website", "Invalid URL format")
@@ -76,4 +77,4 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getValidationErrors().get(0).getField()).isEqualTo("name");
         assertThat(response.getBody().getValidationErrors().get(1).getField()).isEqualTo("website");
     }
-} 
+}

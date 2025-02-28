@@ -1,43 +1,35 @@
 package com.qrmenu.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qrmenu.dto.menu.MenuItemRequest;
-import com.qrmenu.model.Menu;
-import com.qrmenu.model.MenuItem;
-import com.qrmenu.model.Restaurant;
-import com.qrmenu.repository.MenuItemRepository;
-import com.qrmenu.repository.MenuRepository;
-import com.qrmenu.repository.RestaurantRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.Base64;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qrmenu.dto.menu.MenuItemRequest;
+import com.qrmenu.model.Menu;
+import com.qrmenu.model.MenuCategory;
+import com.qrmenu.model.MenuItem;
+import com.qrmenu.model.Restaurant;
+import com.qrmenu.repository.MenuCategoryRepository;
+import com.qrmenu.repository.MenuItemRepository;
+import com.qrmenu.repository.MenuRepository;
+import com.qrmenu.repository.RestaurantRepository;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
 @Transactional
-class MenuIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+class MenuIntegrationTest extends IntegrationTest {
 
     @Autowired
     private RestaurantRepository restaurantRepository;
@@ -46,10 +38,17 @@ class MenuIntegrationTest {
     private MenuRepository menuRepository;
 
     @Autowired
+    private MenuCategoryRepository menuCategoryRepository;
+
+    @Autowired
     private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private Restaurant testRestaurant;
     private Menu testMenu;
+    private MenuCategory testCategory;
 
     @BeforeEach
     void setUp() {
@@ -63,24 +62,27 @@ class MenuIntegrationTest {
                 .name("Main Menu")
                 .active(true)
                 .build());
+
+        testCategory = menuCategoryRepository.save(MenuCategory.builder()
+                .restaurant(testRestaurant)
+                .menu(testMenu)
+                .name("Test Category")
+                .displayOrder(1)
+                .active(true)
+                .build());
     }
 
     @Test
     @WithMockUser(roles = "RESTAURANT_ADMIN")
     void shouldCreateAndUpdateMenuItem() throws Exception {
-        // Create menu item with image
-        MockMultipartFile imageFile = new MockMultipartFile(
-            "image",
-            "test-image.jpg",
-            MediaType.IMAGE_JPEG_VALUE,
-            "test image content".getBytes()
-        );
 
         MenuItemRequest request = new MenuItemRequest();
         request.setName("Test Item");
         request.setDescription("Test Description");
         request.setPrice(BigDecimal.valueOf(9.99));
-        request.setImageBase64(Base64.getEncoder().encodeToString(imageFile.getBytes()));
+        request.setMenuId(testMenu.getId());
+        request.setCategoryId(testCategory.getId());
+        request.setImageUrl("http://example.com/images/test-image.jpg");
 
         String responseJson = mockMvc.perform(post("/api/v1/menus/{menuId}/items", testMenu.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -116,23 +118,23 @@ class MenuIntegrationTest {
     void shouldHandleMenuItemAvailability() throws Exception {
         MenuItem item = menuItemRepository.save(MenuItem.builder()
                 .menu(testMenu)
+                .category(testCategory)
                 .name("Test Item")
                 .price(BigDecimal.valueOf(9.99))
-                .available(true)
                 .active(true)
                 .build());
 
-        // Set item as unavailable
-        mockMvc.perform(patch("/api/v1/menus/{menuId}/items/{itemId}/availability", 
+        // Set item as inactive
+        mockMvc.perform(patch("/api/v1/menus/{menuId}/items/{itemId}/availability",
                 testMenu.getId(), item.getId())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"available\": false}"))
+                .content("{\"active\": false}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.available").value(false));
+                .andExpect(jsonPath("$.active").value(false));
 
         // Verify in database
         MenuItem updatedItem = menuItemRepository.findById(item.getId()).orElseThrow();
-        assertThat(updatedItem.isAvailable()).isFalse();
+        assertThat(updatedItem.isActive()).isFalse();
     }
 
     @Test
@@ -140,16 +142,16 @@ class MenuIntegrationTest {
     void shouldAllowManagerToUpdateAvailability() throws Exception {
         MenuItem item = menuItemRepository.save(MenuItem.builder()
                 .menu(testMenu)
+                .category(testCategory)
                 .name("Test Item")
                 .price(BigDecimal.valueOf(9.99))
-                .available(true)
                 .active(true)
                 .build());
 
-        mockMvc.perform(patch("/api/v1/menus/{menuId}/items/{itemId}/availability", 
+        mockMvc.perform(patch("/api/v1/menus/{menuId}/items/{itemId}/availability",
                 testMenu.getId(), item.getId())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"available\": false}"))
+                .content("{\"active\": false}"))
                 .andExpect(status().isOk());
     }
 
@@ -159,6 +161,8 @@ class MenuIntegrationTest {
         MenuItemRequest request = new MenuItemRequest();
         request.setName("Test Item");
         request.setPrice(BigDecimal.valueOf(9.99));
+        request.setMenuId(testMenu.getId());
+        request.setCategoryId(testCategory.getId());
 
         mockMvc.perform(post("/api/v1/menus/{menuId}/items", testMenu.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -171,4 +175,4 @@ class MenuIntegrationTest {
         mockMvc.perform(get("/api/v1/menus/{menuId}/items", testMenu.getId()))
                 .andExpect(status().isUnauthorized());
     }
-} 
+}

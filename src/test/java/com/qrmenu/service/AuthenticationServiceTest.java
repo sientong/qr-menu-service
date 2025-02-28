@@ -1,8 +1,14 @@
 package com.qrmenu.service;
 
-import com.qrmenu.model.User;
-import com.qrmenu.model.UserRole;
-import com.qrmenu.service.impl.AuthenticationServiceImpl;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,12 +18,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Optional;
-import java.util.UUID;
+import com.qrmenu.config.TokenConfig;
+import com.qrmenu.dto.auth.TokenResponse;
+import com.qrmenu.model.User;
+import com.qrmenu.model.UserRole;
+import com.qrmenu.service.impl.AuthenticationServiceImpl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
@@ -34,12 +41,24 @@ class AuthenticationServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private TokenConfig tokenConfig;
+
+    @Mock
+    private RateLimitService rateLimitService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private MeterRegistry meterRegistry;
+
     private AuthenticationService authenticationService;
 
     @BeforeEach
     void setUp() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        authenticationService = new AuthenticationServiceImpl(userService, passwordEncoder, redisTemplate);
+        authenticationService = new AuthenticationServiceImpl(userService, passwordEncoder, redisTemplate, tokenConfig, rateLimitService, emailService, meterRegistry);
     }
 
     @Test
@@ -59,11 +78,12 @@ class AuthenticationServiceTest {
         when(valueOperations.get(any())).thenReturn(null);
 
         // When
-        String token = authenticationService.login(email, password);
+        TokenResponse tokenResponse = authenticationService.login(email, password);
 
         // Then
-        assertThat(token).isNotNull();
-        verify(valueOperations).set(eq("token:" + token), eq(user.getId().toString()), any());
+        assertThat(tokenResponse).isNotNull();
+        assertThat(tokenResponse.getAccessToken()).isNotNull();
+        verify(valueOperations).set(eq("token:" + tokenResponse.getAccessToken()), eq(user.getId().toString()), any());
     }
 
     @Test
@@ -78,4 +98,4 @@ class AuthenticationServiceTest {
         // Then
         assertThat(isValid).isTrue();
     }
-} 
+}

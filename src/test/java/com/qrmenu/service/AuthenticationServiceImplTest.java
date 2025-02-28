@@ -1,9 +1,15 @@
 package com.qrmenu.service;
 
-import com.qrmenu.exception.AuthenticationException;
-import com.qrmenu.model.User;
-import com.qrmenu.model.UserRole;
-import com.qrmenu.service.impl.AuthenticationServiceImpl;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,14 +19,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.Duration;
-import java.util.Optional;
+import com.qrmenu.config.TokenConfig;
+import com.qrmenu.dto.auth.TokenResponse;
+import com.qrmenu.exception.AuthenticationException;
+import com.qrmenu.model.User;
+import com.qrmenu.model.UserRole;
+import com.qrmenu.service.impl.AuthenticationServiceImpl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import io.micrometer.core.instrument.MeterRegistry;
+
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceImplTest {
@@ -37,12 +44,24 @@ class AuthenticationServiceImplTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private TokenConfig tokenConfig;
+
+    @Mock
+    private RateLimitService rateLimitService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    MeterRegistry meterRegistry;
+
     private AuthenticationService authService;
 
     @BeforeEach
     void setUp() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        authService = new AuthenticationServiceImpl(userService, passwordEncoder, redisTemplate);
+        authService = new AuthenticationServiceImpl(userService, passwordEncoder, redisTemplate, tokenConfig, rateLimitService, emailService, meterRegistry);
     }
 
     @Test
@@ -61,10 +80,10 @@ class AuthenticationServiceImplTest {
         when(passwordEncoder.matches(password, user.getPasswordHash())).thenReturn(true);
 
         // When
-        String token = authService.login(email, password);
+        TokenResponse token = authService.login(email, password);
 
         // Then
-        assertThat(token).isNotNull();
+        assertThat(token.getAccessToken()).isNotNull();
         verify(valueOperations).set(
                 eq("token:" + token),
                 eq(user.getId().toString()),
@@ -138,4 +157,4 @@ class AuthenticationServiceImplTest {
         assertThat(currentUser).isNotNull();
         assertThat(currentUser.getId()).isEqualTo(userId);
     }
-} 
+}

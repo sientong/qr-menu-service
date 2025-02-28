@@ -1,14 +1,15 @@
 package com.qrmenu.security;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.context.ActiveProfiles;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -31,13 +32,16 @@ class SecurityEventLoggerTest {
         // Verify event in stream
         var streamEntries = redisTemplate.opsForStream().range(
             "security:events",
-            Range.unbounded()
+            Range.from(Range.Bound.inclusive("-")).to(Range.Bound.inclusive("+"))
         );
-        
+
+        assertThat(streamEntries).isNotNull();
         assertThat(streamEntries).isNotEmpty();
+
+        @SuppressWarnings("null")
         var lastEntry = streamEntries.get(streamEntries.size() - 1);
-        Map<String, String> eventData = lastEntry.getValue();
-        
+        Map<Object, Object> eventData = lastEntry.getValue();
+
         assertThat(eventData)
             .containsEntry("eventType", eventType)
             .containsEntry("username", username)
@@ -50,17 +54,17 @@ class SecurityEventLoggerTest {
         int eventCount = 5;
         for (int i = 0; i < eventCount; i++) {
             securityEventLogger.logEvent(
-                "TEST_EVENT",
-                "user" + i + "@example.com",
+                "TEST_EVENT_" + i,
+                "test" + i + "@example.com",
                 "Test event " + i
             );
         }
 
         var streamEntries = redisTemplate.opsForStream().range(
             "security:events",
-            Range.unbounded()
+            Range.from(Range.Bound.inclusive("-")).to(Range.Bound.inclusive("+"))
         );
-        
-        assertThat(streamEntries).hasSizeGreaterThanOrEqualTo(eventCount);
+
+        assertThat(streamEntries).hasSize(eventCount);
     }
-} 
+}

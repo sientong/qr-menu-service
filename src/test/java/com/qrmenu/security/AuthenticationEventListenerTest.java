@@ -5,6 +5,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.core.Authentication;
@@ -50,10 +52,9 @@ class AuthenticationEventListenerTest {
 
     @Test
     void shouldLogFailedAuthentication() {
-        Authentication auth = mock(Authentication.class);
-        when(auth.getName()).thenReturn("test@example.com");
+        Authentication auth = new UsernamePasswordAuthenticationToken("test@example.com", "wrong-password");
+        BadCredentialsException ex = new BadCredentialsException("Invalid credentials");
         
-        Exception ex = new Exception("Invalid credentials");
         AuthenticationFailureBadCredentialsEvent event = 
             new AuthenticationFailureBadCredentialsEvent(auth, ex);
         
@@ -65,4 +66,4 @@ class AuthenticationEventListenerTest {
             contains("Invalid credentials")
         );
     }
-} 
+}

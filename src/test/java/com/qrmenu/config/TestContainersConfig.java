@@ -12,14 +12,18 @@ public class TestContainersConfig {
 
     @Bean
     @ServiceConnection
-    PostgreSQLContainer<?> postgresContainer() {
-        return new PostgreSQLContainer<>("postgres:15-alpine")
+    public PostgreSQLContainer<?> postgresContainer() {
+        return new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))
+                .withDatabaseName("qr_menu_test")
+                .withUsername("test")
+                .withPassword("test")
                 .withInitScript("db/schema.sql");
     }
 
     @Bean
-    GenericContainer<?> redisContainer() {
+    @ServiceConnection(name = "redis")
+    public GenericContainer<?> redisContainer() {
         return new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
                 .withExposedPorts(6379);
     }
-} 
+}

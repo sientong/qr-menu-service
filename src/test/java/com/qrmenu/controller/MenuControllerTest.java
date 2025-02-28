@@ -86,7 +86,7 @@ class MenuControllerTest {
     void shouldUpdateItemAvailability() throws Exception {
         MenuItemResponse response = MenuItemResponse.builder()
                 .id(1L)
-                .available(false)
+                .active(false)
                 .build();
 
         when(menuService.updateItemAvailability(eq(1L), eq(1L), eq(false)))
@@ -94,9 +94,9 @@ class MenuControllerTest {
 
         mockMvc.perform(patch("/api/v1/menus/{menuId}/items/{itemId}/availability", 1L, 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"available\": false}"))
+                .content("{\"active\": false}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.available").value(false));
+                .andExpect(jsonPath("$.active").value(false));
     }
 
     @Test

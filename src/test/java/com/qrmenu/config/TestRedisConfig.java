@@ -4,17 +4,21 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.embedded.RedisServer;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import java.io.IOException;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 @TestConfiguration
 public class TestRedisConfig {
     private RedisServer redisServer;
 
     @PostConstruct
-    public void startRedis() {
+    public void startRedis() throws IOException {
         redisServer = new RedisServer(6379);
         redisServer.start();
     }
@@ -30,4 +34,15 @@ public class TestRedisConfig {
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory("localhost", 6379);
     }
-} 
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+        return template;
+    }
+}

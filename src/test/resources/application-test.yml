@@ -10,15 +10,42 @@ spring:
   mail:
     host: localhost
     port: 3025
-    username: test
+    username: test@test.com
     password: test
+    from: test@test.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    default-encoding: UTF-8
     
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        
 application:
   frontend-url: http://localhost:3000
   security:
     token:
-      expiration: 3600000
+      expiration: 3600000  # 1 hour
+      refresh-expiration: 86400000  # 24 hours
+  qrcode:
+    expiration: 2592000000  # 30 days
   rate-limit:
+    requests-per-second: 10
     login-attempts-per-hour: 5
     password-reset-attempts-per-day: 3
-    token-refresh-attempts-per-hour: 10 
+    token-refresh-attempts-per-hour: 10
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    com.qrmenu: DEBUG

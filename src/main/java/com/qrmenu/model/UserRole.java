@@ -27,5 +27,10 @@ public enum UserRole {
     /**
      * Customer with read-only access to menu
      */
-    CUSTOMER
+    CUSTOMER,
+    
+    /**
+     * Restaurant owner with full access to their restaurant
+     */
+    RESTAURANT_OWNER
 }

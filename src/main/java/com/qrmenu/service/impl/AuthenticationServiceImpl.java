@@ -1,5 +1,13 @@
 package com.qrmenu.service.impl;
 
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.qrmenu.config.TokenConfig;
 import com.qrmenu.dto.auth.TokenResponse;
 import com.qrmenu.exception.AuthenticationException;
@@ -8,18 +16,12 @@ import com.qrmenu.service.AuthenticationService;
 import com.qrmenu.service.EmailService;
 import com.qrmenu.service.RateLimitService;
 import com.qrmenu.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import io.micrometer.core.instrument.MeterRegistry;
+
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
-
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -85,9 +87,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Get all tokens for user and delete them
 
         Set<String> tokens = redisTemplate.opsForSet().members(USER_TOKENS_PREFIX + userId);
-        
+
         if (tokens == null) return;
-        
+
         tokens.forEach(token -> redisTemplate.delete(ACCESS_TOKEN_PREFIX + token));
         redisTemplate.delete(USER_TOKENS_PREFIX + userId);
     }
@@ -112,7 +114,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @NewSpan("auth.password.reset.confirm")
     public void confirmPasswordReset(
-            @SpanTag("auth.reset_token") String token, 
+            @SpanTag("auth.reset_token") String token,
             String newPassword) {
         String userId = redisTemplate.opsForValue().get(PASSWORD_RESET_PREFIX + token);
         if (userId == null) {
@@ -176,4 +178,4 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public boolean validateToken(String token) {
         return redisTemplate.opsForValue().get(ACCESS_TOKEN_PREFIX + token) != null;
     }
-} 
+}

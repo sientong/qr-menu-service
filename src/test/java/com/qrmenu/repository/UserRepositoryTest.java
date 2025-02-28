@@ -1,16 +1,17 @@
 package com.qrmenu.repository;
 
-import com.qrmenu.model.User;
-import com.qrmenu.model.UserRole;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZonedDateTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.qrmenu.model.User;
+import com.qrmenu.model.UserRole;
 
 @SpringBootTest
 @Transactional
@@ -68,12 +69,12 @@ class UserRepositoryTest {
 
         // When
         savedUser.setPasswordHash("newPassword");
-        savedUser.setRole(UserRole.ADMIN);
-        savedUser.setUpdatedAt(ZonedDateTime.now());
+        savedUser.setRole(UserRole.SUPER_ADMIN);
+        savedUser.setUpdatedAt(LocalDateTime.now());
         User updatedUser = userRepository.save(savedUser);
 
         // Then
         assertThat(updatedUser.getPasswordHash()).isEqualTo("newPassword");
-        assertThat(updatedUser.getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(updatedUser.getRole()).isEqualTo(UserRole.SUPER_ADMIN);
     }
-} 
+}

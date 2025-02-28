@@ -1,12 +1,11 @@
 package com.qrmenu.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qrmenu.dto.auth.LoginRequest;
-import com.qrmenu.dto.auth.RefreshTokenRequest;
-import com.qrmenu.dto.auth.TokenResponse;
-import com.qrmenu.exception.AuthenticationException;
-import com.qrmenu.model.User;
-import com.qrmenu.service.AuthenticationService;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,12 +13,15 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qrmenu.dto.auth.LoginRequest;
+import com.qrmenu.dto.auth.RefreshTokenRequest;
+import com.qrmenu.dto.auth.TokenResponse;
+import com.qrmenu.service.AuthenticationService;
+import com.qrmenu.service.RateLimitService;
 
 @WebMvcTest(AuthController.class)
+@MockBean(RateLimitService.class)
 class AuthControllerTest {
 
     @Autowired
@@ -86,7 +88,7 @@ class AuthControllerTest {
     void shouldLogoutSuccessfully() throws Exception {
         // Given
         String token = "valid-token";
-        
+
         // When & Then
         mockMvc.perform(post("/api/v1/auth/logout")
                 .header("Authorization", "Bearer " + token))
@@ -94,4 +96,4 @@ class AuthControllerTest {
 
         verify(authService).logout(token);
     }
-} 
+}

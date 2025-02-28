@@ -1,16 +1,21 @@
 package com.qrmenu.repository;
 
-import com.qrmenu.model.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.qrmenu.model.MenuCategory;
+import com.qrmenu.model.MenuItem;
+import com.qrmenu.model.Restaurant;
+import com.qrmenu.model.StockAdjustmentType;
+import com.qrmenu.model.StockHistory;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -23,7 +28,7 @@ class StockHistoryRepositoryTest {
     private MenuItemRepository menuItemRepository;
 
     @Autowired
-    private CategoryRepository categoryRepository;
+    private MenuCategoryRepository menuCategoryRepository;
 
     @Autowired
     private RestaurantRepository restaurantRepository;
@@ -36,17 +41,17 @@ class StockHistoryRepositoryTest {
     void setUp() {
         restaurant = restaurantRepository.save(Restaurant.builder()
                 .name("Test Restaurant")
-                .isActive(true)
+                .active(true)
                 .build());
 
-        Category category = categoryRepository.save(Category.builder()
-                .name("Test Category")
+        MenuCategory menuCategory = menuCategoryRepository.save(MenuCategory.builder()
+                .name("Test Menu Category")
                 .restaurant(restaurant)
                 .build());
 
         menuItem = menuItemRepository.save(MenuItem.builder()
                 .name("Test Item")
-                .category(category)
+                .category(menuCategory)
                 .trackStock(true)
                 .stockQuantity(10)
                 .build());
@@ -119,7 +124,7 @@ class StockHistoryRepositoryTest {
                 .build());
 
         long count = stockHistoryRepository.countRecentAdjustments(
-                menuItem.getId(), 
+                menuItem.getId(),
                 LocalDateTime.now().minusDays(1)
         );
 
@@ -135,4 +140,4 @@ class StockHistoryRepositoryTest {
 
         assertThat(count).isZero();
     }
-} 
+}

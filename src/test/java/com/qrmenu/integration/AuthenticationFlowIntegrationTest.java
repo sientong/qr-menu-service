@@ -1,9 +1,9 @@
 package com.qrmenu.integration;
 
-import com.qrmenu.dto.auth.*;
-import com.qrmenu.model.User;
-import com.qrmenu.model.UserRole;
-import com.qrmenu.service.UserService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +11,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MvcResult;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.qrmenu.dto.auth.LoginRequest;
+import com.qrmenu.dto.auth.PasswordResetConfirmRequest;
+import com.qrmenu.dto.auth.PasswordResetRequest;
+import com.qrmenu.dto.auth.RefreshTokenRequest;
+import com.qrmenu.dto.auth.TokenResponse;
+import com.qrmenu.model.User;
+import com.qrmenu.model.UserRole;
+import com.qrmenu.service.AuthenticationService;
+import com.qrmenu.service.UserService;
 
 class AuthenticationFlowIntegrationTest extends IntegrationTest {
 
@@ -23,6 +29,9 @@ class AuthenticationFlowIntegrationTest extends IntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AuthenticationService authService;
+
     private User testUser;
 
     @BeforeEach
@@ -30,7 +39,7 @@ class AuthenticationFlowIntegrationTest extends IntegrationTest {
         testUser = User.builder()
                 .email("test@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
-                .role(UserRole.RESTAURANT_OWNER)
+                .role(UserRole.RESTAURANT_ADMIN)
                 .build();
         testUser = userService.createUser(testUser);
     }
@@ -50,29 +59,59 @@ class AuthenticationFlowIntegrationTest extends IntegrationTest {
 
         TokenResponse tokenResponse = objectMapper.readValue(
                 loginResult.getResponse().getContentAsString(),
-                TokenResponse.class
-        );
+                TokenResponse.class);
+
+        assertThat(tokenResponse.getAccessToken()).isNotBlank();
+        assertThat(tokenResponse.getRefreshToken()).isNotBlank();
 
         // Refresh token
         RefreshTokenRequest refreshRequest = new RefreshTokenRequest();
         refreshRequest.setRefreshToken(tokenResponse.getRefreshToken());
 
-        mockMvc.perform(post("/api/v1/auth/refresh")
+        MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(refreshRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .andReturn();
 
-        // Logout
-        mockMvc.perform(post("/api/v1/auth/logout")
-                .header("Authorization", "Bearer " + tokenResponse.getAccessToken()))
+        TokenResponse refreshedTokens = objectMapper.readValue(
+                refreshResult.getResponse().getContentAsString(),
+                TokenResponse.class);
+
+        assertThat(refreshedTokens.getAccessToken())
+                .isNotBlank()
+                .isNotEqualTo(tokenResponse.getAccessToken());
+
+        // Password reset request
+        PasswordResetRequest resetRequest = new PasswordResetRequest();
+        resetRequest.setEmail(testUser.getEmail());
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(resetRequest)))
                 .andExpect(status().isOk());
 
-        // Verify token is invalidated
-        mockMvc.perform(post("/api/v1/auth/logout")
-                .header("Authorization", "Bearer " + tokenResponse.getAccessToken()))
-                .andExpect(status().isUnauthorized());
+        // Get reset token from user service
+        TokenResponse resetToken = authService.refreshToken(testUser.getEmail());
+        assertThat(resetToken.getRefreshToken()).isNotNull();
+
+        // Complete password reset
+        PasswordResetConfirmRequest completeRequest = new PasswordResetConfirmRequest();
+        completeRequest.setToken(resetToken.getRefreshToken());
+        completeRequest.setNewPassword("newPassword123");
+
+        mockMvc.perform(post("/api/v1/auth/reset-password/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(completeRequest)))
+                .andExpect(status().isOk());
+
+        // Try login with new password
+        loginRequest.setPassword("newPassword123");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -135,4 +174,4 @@ class AuthenticationFlowIntegrationTest extends IntegrationTest {
                     .andExpect(status().isUnauthorized());
         }
     }
-} 
+}

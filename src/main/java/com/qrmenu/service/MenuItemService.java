@@ -7,7 +7,6 @@ import com.qrmenu.model.MenuItem;
 import com.qrmenu.model.MenuCategory;
 import com.qrmenu.repository.MenuItemRepository;
 import com.qrmenu.repository.MenuCategoryRepository;
-import com.qrmenu.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +21,6 @@ import java.math.BigDecimal;
 public class MenuItemService {
     private final MenuItemRepository menuItemRepository;
     private final MenuCategoryRepository menuCategoryRepository;
-    private final MenuRepository menuRepository;
 
     @Transactional
     public MenuItemResponse createMenuItem(MenuItemRequest request) {

@@ -1,11 +1,13 @@
 package com.qrmenu.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qrmenu.dto.table.RestaurantTableRequest;
-import com.qrmenu.model.Restaurant;
-import com.qrmenu.model.RestaurantTable;
-import com.qrmenu.repository.RestaurantRepository;
-import com.qrmenu.repository.RestaurantTableRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +19,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qrmenu.dto.table.RestaurantTableRequest;
+import com.qrmenu.model.Restaurant;
+import com.qrmenu.model.RestaurantTable;
+import com.qrmenu.repository.RestaurantRepository;
+import com.qrmenu.repository.RestaurantTableRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -115,7 +120,7 @@ class RestaurantTableIntegrationTest {
         updateRequest.setTableNumber("T1-Updated");
         updateRequest.setCapacity(6);
 
-        mockMvc.perform(put("/api/v1/restaurants/{restaurantId}/tables/{tableId}", 
+        mockMvc.perform(put("/api/v1/restaurants/{restaurantId}/tables/{tableId}",
                 testRestaurant.getId(), existingTable.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
@@ -123,7 +128,7 @@ class RestaurantTableIntegrationTest {
                 .andExpect(jsonPath("$.tableNumber").value("T1-Updated"));
 
         // Delete table
-        mockMvc.perform(delete("/api/v1/restaurants/{restaurantId}/tables/{tableId}", 
+        mockMvc.perform(delete("/api/v1/restaurants/{restaurantId}/tables/{tableId}",
                 testRestaurant.getId(), existingTable.getId()))
                 .andExpect(status().isNoContent());
 
@@ -219,4 +224,4 @@ class RestaurantTableIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
-} 
+}
